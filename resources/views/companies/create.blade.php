@@ -1,73 +1,102 @@
 @extends('layouts.app')
 
-@section('title', 'Add Company - SmartCRM')
+@section('title', 'Add New Company - SmartCRM')
 
 @section('content')
-<div class="mb-8">
-    <a href="{{ route('companies.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center mb-4">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Back to Companies
-    </a>
-    <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Add New Company</h1>
-    <p class="text-slate-500 mt-1 text-sm font-medium">Create a new company profile in your CRM.</p>
-</div>
-
-<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden max-w-4xl">
-    <form action="{{ route('companies.store') }}" method="POST" class="p-8">
-        @csrf
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2 text-xs text-slate-400">
+            <a href="{{ route('companies.index') }}" class="hover:text-brand-400 font-medium">Companies</a>
+            <span>/</span>
+            <span class="text-slate-200 font-semibold">New Company</span>
+        </div>
         
-        <h2 class="text-lg font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2">Basic Information</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div>
-                <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Company Name <span class="text-red-500">*</span></label>
-                <input type="text" name="name" id="name" required class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="e.g. Acme Corp">
-            </div>
-            <div>
-                <label for="industry" class="block text-sm font-medium text-slate-700 mb-1">Industry</label>
-                <input type="text" name="industry" id="industry" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="e.g. Technology">
-            </div>
-            <div>
-                <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                <input type="email" name="email" id="email" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="contact@company.com">
-            </div>
-            <div>
-                <label for="phone" class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
-                <input type="text" name="phone" id="phone" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="(555) 123-4567">
-            </div>
-            <div class="md:col-span-2">
-                <label for="website" class="block text-sm font-medium text-slate-700 mb-1">Website</label>
-                <input type="url" name="website" id="website" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="https://www.company.com">
-            </div>
+        <a href="{{ route('companies.index') }}" class="text-xs text-slate-400 hover:text-white transition">
+            &larr; Back to Directory
+        </a>
+    </div>
+
+    <div class="bg-dark-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+        <div class="p-6 border-b border-slate-800 bg-dark-900/60">
+            <h1 class="text-xl font-bold text-white tracking-tight">Create Company Account</h1>
+            <p class="text-xs text-slate-400 mt-1">Register an enterprise account, communication channels, and address details.</p>
         </div>
 
-        <h2 class="text-lg font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2">Location</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="md:col-span-2">
-                <label for="address" class="block text-sm font-medium text-slate-700 mb-1">Street Address</label>
-                <textarea name="address" id="address" rows="2" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="123 Main St."></textarea>
-            </div>
-            <div>
-                <label for="city" class="block text-sm font-medium text-slate-700 mb-1">City</label>
-                <input type="text" name="city" id="city" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="San Francisco">
-            </div>
-            <div>
-                <label for="state" class="block text-sm font-medium text-slate-700 mb-1">State / Province</label>
-                <input type="text" name="state" id="state" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="CA">
-            </div>
-            <div>
-                <label for="zip" class="block text-sm font-medium text-slate-700 mb-1">ZIP / Postal Code</label>
-                <input type="text" name="zip" id="zip" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="94105">
-            </div>
-            <div>
-                <label for="country" class="block text-sm font-medium text-slate-700 mb-1">Country</label>
-                <input type="text" name="country" id="country" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition" placeholder="United States">
-            </div>
-        </div>
+        <form action="{{ route('companies.store') }}" method="POST" class="p-6 space-y-6">
+            @csrf
 
-        <div class="flex justify-end space-x-3 pt-6 border-t border-slate-100">
-            <a href="{{ route('companies.index') }}" class="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Cancel</a>
-            <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">Save Company</button>
-        </div>
-    </form>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Company Name -->
+                <div class="space-y-1.5 md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-300">Company Name <span class="text-rose-400">*</span></label>
+                    <input type="text" name="name" value="{{ old('name') }}" required placeholder="e.g. Acme Corporation" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                    @error('name')<p class="text-[11px] text-rose-400">{{ $message }}</p>@enderror
+                </div>
+
+                <!-- Industry -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">Industry Sector</label>
+                    <input type="text" name="industry" value="{{ old('industry') }}" placeholder="e.g. Technology, Finance, Manufacturing" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- Website -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">Website URL</label>
+                    <input type="text" name="website" value="{{ old('website') }}" placeholder="e.g. https://acme.com" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- Email -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">Primary Email</label>
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="e.g. contact@acme.com" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- Phone -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">Phone Number</label>
+                    <input type="text" name="phone" value="{{ old('phone') }}" placeholder="e.g. +1 555-0199" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- Street Address -->
+                <div class="space-y-1.5 md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-300">Street Address</label>
+                    <input type="text" name="address" value="{{ old('address') }}" placeholder="e.g. 100 Main St, Suite 400" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- City -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">City</label>
+                    <input type="text" name="city" value="{{ old('city') }}" placeholder="e.g. San Francisco" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- State -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">State / Province</label>
+                    <input type="text" name="state" value="{{ old('state') }}" placeholder="e.g. California" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- Zip -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">ZIP / Postal Code</label>
+                    <input type="text" name="zip" value="{{ old('zip') }}" placeholder="e.g. 94105" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <!-- Country -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">Country</label>
+                    <input type="text" name="country" value="{{ old('country') }}" placeholder="e.g. United States" class="w-full bg-dark-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:border-brand-500 outline-none transition">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-800">
+                <a href="{{ route('companies.index') }}" class="px-4 py-2 rounded-xl bg-dark-950 border border-slate-800 text-xs font-semibold text-slate-400 hover:text-white transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/25 transition">
+                    Create Company
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection

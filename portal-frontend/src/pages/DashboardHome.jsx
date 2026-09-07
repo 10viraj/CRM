@@ -411,20 +411,21 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Sales Performance Team Leaderboard */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-black text-slate-900 tracking-tight">Sales Performance</h3>
-              <p className="text-xs text-slate-400">Team member deal conversions</p>
+        {/* Sales Performance Team Leaderboard (Admin Only) */}
+        {data?.sales_performance && data.sales_performance.length > 0 && (
+          <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-sm font-black text-slate-900 tracking-tight">Sales Performance</h3>
+                  <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-bold">Admin Only</span>
+                </div>
+                <p className="text-xs text-slate-400">Team member deal conversions</p>
+              </div>
             </div>
-          </div>
 
-          <div className="divide-y divide-slate-100">
-            {(!data?.sales_performance || data.sales_performance.length === 0) ? (
-              <p className="text-xs text-slate-400 py-8 text-center italic">No sales activity recorded</p>
-            ) : (
-              data.sales_performance.map((member, idx) => (
+            <div className="divide-y divide-slate-100">
+              {data.sales_performance.map((member, idx) => (
                 <div key={member.id} className="py-3 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
@@ -440,13 +441,13 @@ export default function DashboardHome() {
                     <span className="text-[10px] font-bold text-slate-400">#{idx + 1} Rank</span>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Recent Activities Feed */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div className={`${data?.sales_performance && data.sales_performance.length > 0 ? 'lg:col-span-4' : 'lg:col-span-8'} bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4`}>
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-sm font-black text-slate-900 tracking-tight">Recent CRM Activities</h3>

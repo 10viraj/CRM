@@ -276,7 +276,7 @@ class DashboardController extends Controller
                 'leads_overview' => $leadsOverview,
                 'deals_by_stage' => $dealsByStage,
                 'revenue_trend' => $revenueTrend,
-                'sales_performance' => $salesPerformance,
+                'sales_performance' => ($request->user() && $request->user()->isAdmin()) ? $salesPerformance : [],
                 'recent_activities' => $activities,
             ],
         ]);
