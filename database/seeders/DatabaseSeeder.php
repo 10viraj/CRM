@@ -2,37 +2,43 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Models\Lead;
-use App\Models\LeadSource;
-use App\Models\LeadStatus;
-use App\Models\LeadActivity;
+use App\Models\Activity;
+use App\Models\ActivityLog;
+use App\Models\Attachment;
+use App\Models\CalendarEvent;
+use App\Models\Company;
+use App\Models\Contact;
+use App\Models\CustomField;
 use App\Models\Deal;
 use App\Models\DealStage;
 use App\Models\FollowUp;
-use App\Models\User;
-use App\Models\ProductCategory;
-use App\Models\Product;
-use App\Models\Quotation;
-use App\Models\QuotationItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Lead;
+use App\Models\LeadActivity;
+use App\Models\LeadSource;
+use App\Models\LeadStatus;
+use App\Models\Notification;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\Setting;
-use App\Models\ActivityLog;
-use App\Models\Attachment;
-
-
-
-
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Ensure the user exists
+        // 1. Roles & Permissions
+        $this->call(RolePermissionSeeder::class);
+
+        // 2. Admin User
         $user = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             [
@@ -40,15 +46,36 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
             ]
         );
+        $adminRole = Role::where('name', 'Admin')->first();
+        if ($adminRole && !$user->hasRole('Admin')) {
+            $user->assignRole($adminRole);
+        }
 
-        // 2. Seed Lead Sources
+        // Additional sales reps
+        $salesRep = User::firstOrCreate(
+            ['email' => 'sarah.sales@example.com'],
+            [
+                'name' => 'Sarah Connor',
+                'password' => Hash::make('password'),
+            ]
+        );
+        $repRole = Role::where('name', 'Sales Representative')->first();
+        if ($repRole && !$salesRep->hasRole('Sales Representative')) {
+            $salesRep->assignRole($repRole);
+        }
+
+        // 3. Companies
+        $this->call(CompanySeeder::class);
+        $companies = Company::all();
+
+        // 4. Lead Sources
         $sources = ['Website', 'Referral', 'Cold Call', 'Conference', 'Social Media', 'Email Campaign'];
         foreach ($sources as $source) {
             LeadSource::firstOrCreate(['name' => $source]);
         }
         $sourceIds = LeadSource::pluck('id')->toArray();
 
-        // 3. Seed Lead Statuses
+        // 5. Lead Statuses
         $statuses = [
             ['name' => 'New', 'color' => 'blue'],
             ['name' => 'Contacted', 'color' => 'yellow'],
@@ -63,8 +90,7 @@ class DatabaseSeeder extends Seeder
         }
         $statusIds = LeadStatus::pluck('id')->toArray();
 
-        
-        // Seed Deal Stages
+        // 6. Deal Stages
         $dealStages = [
             ['name' => 'New', 'color' => 'blue', 'order_index' => 1],
             ['name' => 'Qualified', 'color' => 'indigo', 'order_index' => 2],
@@ -75,16 +101,21 @@ class DatabaseSeeder extends Seeder
         ];
         $stageMap = [];
         foreach ($dealStages as $stage) {
-            $model = DealStage::firstOrCreate(['name' => $stage['name']], ['color' => $stage['color'], 'order_index' => $stage['order_index']]);
+            $model = DealStage::firstOrCreate(
+                ['name' => $stage['name']],
+                ['color' => $stage['color'], 'order_index' => $stage['order_index']]
+            );
             $stageMap[$stage['name']] = $model->id;
         }
 
-        // 4. Generate exactly 142 leads
-        for ($i = 0; $i < 142; $i++) {
+        // 7. Generate Leads
+        for ($i = 0; $i < 50; $i++) {
+            $matchedCompany = $companies->isNotEmpty() ? $companies->random() : null;
             $lead = Lead::create([
                 'first_name' => 'Lead First ' . $i,
                 'last_name'  => 'Last ' . $i,
-                'company'    => 'Company ' . rand(1, 100),
+                'company'    => $matchedCompany ? $matchedCompany->name : 'Company ' . rand(1, 100),
+                'company_id' => $matchedCompany ? $matchedCompany->id : null,
                 'email'      => 'lead' . $i . '@example.com',
                 'phone'      => '(555) ' . rand(100, 999) . '-' . rand(1000, 9999),
                 'lead_source_id' => $sourceIds[array_rand($sourceIds)],
@@ -96,7 +127,6 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ]);
 
-            // Add some activities
             LeadActivity::create([
                 'lead_id' => $lead->id,
                 'user_id' => $user->id,
@@ -105,52 +135,65 @@ class DatabaseSeeder extends Seeder
                 'created_at' => $lead->created_at,
                 'updated_at' => $lead->created_at,
             ]);
-
-            if (rand(0, 1)) {
-                LeadActivity::create([
-                    'lead_id' => $lead->id,
-                    'user_id' => $user->id,
-                    'type' => 'email',
-                    'description' => 'Sent welcome email to ' . $lead->email,
-                    'created_at' => $lead->created_at->addHours(1),
-                    'updated_at' => $lead->created_at->addHours(1),
-                ]);
-            }
         }
+        $leads = Lead::all();
 
-        // 5. Generate deals to total 4.2M revenue and exactly 38 won deals
+        // 8. Contacts
+        $this->call(ContactSeeder::class);
+        $contacts = Contact::all();
+
+        // 9. Deals
         $totalTarget = 4200000;
-        $avgDealValue = $totalTarget / 38;
+        $wonCount = 38;
+        $avgDealValue = $totalTarget / $wonCount;
 
-        for ($i = 0; $i < 38; $i++) {
+        for ($i = 0; $i < $wonCount; $i++) {
             $value = $avgDealValue + rand(-20000, 20000);
-            Deal::insert([
-                'name' => 'Won Deal ' . $i,
+            $randomLead = $leads->isNotEmpty() ? $leads->random() : null;
+            $matchedCompany = $randomLead && $randomLead->company_id ? $randomLead->companyModel : ($companies->isNotEmpty() ? $companies->random() : null);
+            $matchedContact = $contacts->isNotEmpty() ? $contacts->random() : null;
+
+            Deal::create([
+                'name' => 'Won Enterprise Deal ' . $i,
                 'value' => $value,
+                'probability' => 100,
                 'deal_stage_id' => $stageMap['Won'],
-                'lead_id' => rand(1, 142),
+                'status' => 'won',
+                'lead_id' => $randomLead ? $randomLead->id : null,
+                'company_id' => $matchedCompany ? $matchedCompany->id : null,
+                'contact_id' => $matchedContact ? $matchedContact->id : null,
                 'owner_id' => $user->id,
                 'close_date' => now()->subDays(rand(1, 30)),
+                'notes' => 'Contract signed and active.',
                 'created_at' => now()->subDays(rand(31, 60)),
                 'updated_at' => now(),
             ]);
         }
 
         for ($i = 0; $i < 12; $i++) {
-            Deal::insert([
+            $randomLead = $leads->isNotEmpty() ? $leads->random() : null;
+            $matchedCompany = $randomLead && $randomLead->company_id ? $randomLead->companyModel : ($companies->isNotEmpty() ? $companies->random() : null);
+            $matchedContact = $contacts->isNotEmpty() ? $contacts->random() : null;
+            $openStage = ['New', 'Qualified', 'Proposal', 'Negotiation'][rand(0, 3)];
+
+            Deal::create([
                 'name' => 'Open Deal ' . $i,
                 'value' => rand(10000, 100000),
-                'deal_stage_id' => $stageMap[['New', 'Qualified', 'Proposal', 'Negotiation'][rand(0, 3)]],
-                'lead_id' => rand(1, 142),
+                'probability' => rand(20, 80),
+                'deal_stage_id' => $stageMap[$openStage],
+                'status' => 'open',
+                'lead_id' => $randomLead ? $randomLead->id : null,
+                'company_id' => $matchedCompany ? $matchedCompany->id : null,
+                'contact_id' => $matchedContact ? $matchedContact->id : null,
                 'owner_id' => $user->id,
                 'close_date' => now()->addDays(rand(10, 60)),
+                'notes' => 'Active opportunity in pipeline.',
                 'created_at' => now()->subDays(rand(1, 15)),
                 'updated_at' => now(),
             ]);
         }
 
-        
-        // 7. Seed Product Categories and Products
+        // 10. Product Categories & Products
         $categories = ['Software Licenses', 'Consulting Services', 'Hardware', 'Support Plans'];
         foreach ($categories as $cat) {
             ProductCategory::firstOrCreate(['name' => $cat]);
@@ -166,34 +209,36 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($products as $i => $prod) {
-            Product::create([
-                'product_category_id' => $catIds[array_rand($catIds)],
-                'name' => $prod['name'],
-                'description' => 'Description for ' . $prod['name'],
-                'price' => $prod['price'],
-                'sku' => 'SKU-' . (1000 + $i),
-                'status' => 'active'
-            ]);
+            Product::firstOrCreate(
+                ['sku' => 'SKU-' . (1000 + $i)],
+                [
+                    'product_category_id' => $catIds[array_rand($catIds)],
+                    'name' => $prod['name'],
+                    'description' => 'Description for ' . $prod['name'],
+                    'price' => $prod['price'],
+                    'status' => 'active'
+                ]
+            );
         }
         $productIds = Product::pluck('id')->toArray();
 
-        // 8. Generate Quotations
+        // 11. Quotations
         for ($i = 1; $i <= 15; $i++) {
+            $randomLead = $leads->isNotEmpty() ? $leads->random() : null;
             $quote = Quotation::create([
                 'quote_number' => 'QT-' . str_pad($i, 5, '0', STR_PAD_LEFT),
-                'lead_id' => rand(1, 142),
+                'lead_id' => $randomLead ? $randomLead->id : null,
                 'date' => now()->subDays(rand(1, 30)),
                 'expiry_date' => now()->addDays(rand(10, 30)),
                 'status' => ['draft', 'sent', 'accepted', 'rejected', 'expired'][rand(0, 4)],
                 'notes' => 'Looking forward to doing business with you.',
-                'subtotal' => 0, // calculated below
+                'subtotal' => 0,
                 'tax' => 0,
                 'discount' => 0,
                 'grand_total' => 0
             ]);
 
             $subtotal = 0;
-            // Add 1-3 items
             for ($j = 0; $j < rand(1, 3); $j++) {
                 $product = Product::find($productIds[array_rand($productIds)]);
                 $qty = rand(1, 5);
@@ -211,25 +256,24 @@ class DatabaseSeeder extends Seeder
                     'line_total' => $lineTotal
                 ]);
             }
-            
-            $tax = $subtotal * 0.10; // 10% tax
-            $grand = $subtotal + $tax;
+
+            $tax = $subtotal * 0.10;
             $quote->update([
                 'subtotal' => $subtotal,
                 'tax' => $tax,
-                'grand_total' => $grand
+                'grand_total' => $subtotal + $tax
             ]);
         }
 
-        
-        // 9. Generate Invoices and Payments
+        // 12. Invoices & Payments
         for ($i = 1; $i <= 20; $i++) {
+            $randomLead = $leads->isNotEmpty() ? $leads->random() : null;
             $invoice = Invoice::create([
                 'invoice_number' => 'INV-' . str_pad($i, 5, '0', STR_PAD_LEFT),
-                'lead_id' => rand(1, 142),
+                'lead_id' => $randomLead ? $randomLead->id : null,
                 'date' => now()->subDays(rand(10, 60)),
                 'due_date' => now()->addDays(rand(-10, 30)),
-                'status' => 'draft', // updated below
+                'status' => 'draft',
                 'notes' => 'Thank you for your business.',
                 'subtotal' => 0,
                 'tax' => 0,
@@ -240,7 +284,6 @@ class DatabaseSeeder extends Seeder
             ]);
 
             $subtotal = 0;
-            // Add 1-4 items
             for ($j = 0; $j < rand(1, 4); $j++) {
                 $product = Product::find($productIds[array_rand($productIds)]);
                 $qty = rand(1, 10);
@@ -258,14 +301,12 @@ class DatabaseSeeder extends Seeder
                     'line_total' => $lineTotal
                 ]);
             }
-            
-            $tax = $subtotal * 0.10; // 10% tax
+
+            $tax = $subtotal * 0.10;
             $grand = $subtotal + $tax;
-            
-            // Randomly pay some invoices
-            $amountPaid = 0;
             $status = ['draft', 'sent', 'paid', 'overdue'][rand(0, 3)];
-            
+            $amountPaid = 0;
+
             if ($status === 'paid') {
                 $amountPaid = $grand;
                 Payment::create([
@@ -277,7 +318,6 @@ class DatabaseSeeder extends Seeder
                     'notes' => 'Payment received in full.'
                 ]);
             } elseif ($status === 'sent' && rand(0, 1)) {
-                // Partial payment
                 $amountPaid = $grand * 0.5;
                 Payment::create([
                     'invoice_id' => $invoice->id,
@@ -299,23 +339,18 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        
-        // 10. Seed Default Settings
+        // 13. Settings
         $defaultSettings = [
-            // General
             ['key' => 'app_name', 'value' => 'SmartCRM', 'group' => 'general'],
             ['key' => 'timezone', 'value' => 'UTC', 'group' => 'general'],
             ['key' => 'date_format', 'value' => 'Y-m-d', 'group' => 'general'],
-            // Company Info
             ['key' => 'company_name', 'value' => 'SmartCRM Inc.', 'group' => 'company'],
             ['key' => 'company_email', 'value' => 'contact@smartcrm.com', 'group' => 'company'],
             ['key' => 'company_phone', 'value' => '+1 (555) 123-4567', 'group' => 'company'],
             ['key' => 'company_address', 'value' => '123 Business Avenue, Suite 100, San Francisco, CA 94107', 'group' => 'company'],
-            // CRM
             ['key' => 'currency', 'value' => 'USD', 'group' => 'crm'],
             ['key' => 'tax_rate', 'value' => '10', 'group' => 'crm'],
         ];
-
         foreach ($defaultSettings as $setting) {
             Setting::firstOrCreate(
                 ['key' => $setting['key']],
@@ -323,59 +358,51 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        
-        // 11. Seed Activity Logs
-        for ($i = 0; $i < 30; $i++) {
-            $modules = ['lead', 'deal', 'company', 'invoice', 'setting'];
-            $actions = ['created', 'updated', 'deleted', 'viewed', 'completed'];
-            $module = $modules[array_rand($modules)];
-            $action = $actions[array_rand($actions)];
-            
-            ActivityLog::create([
-                'user_id' => 1,
-                'action' => $action,
-                'module' => $module,
-                'description' => "Admin {$action} a {$module} record.",
-                'ip_address' => '192.168.1.' . rand(1, 255),
-                'created_at' => now()->subHours(rand(1, 100))
-            ]);
-        }
-        
-        // 12. Seed Attachments
-        for ($i = 0; $i < 10; $i++) {
-            Attachment::create([
-                'user_id' => 1,
-                'attachable_type' => 'App\Models\Lead',
-                'attachable_id' => rand(1, 142),
-                'file_name' => 'document_' . rand(100, 999) . '.pdf',
-                'file_type' => 'application/pdf',
-                'file_size' => rand(1024, 5000000), // 1KB to 5MB
-                'file_path' => 'attachments/dummy_' . rand(100, 999) . '.pdf',
-                'created_at' => now()->subDays(rand(1, 30))
-            ]);
+        // 14. Tasks
+        $this->call(TaskSeeder::class);
+
+        // 15. Calendar Events
+        $this->call(CalendarEventSeeder::class);
+
+        // 16. Unified Activities
+        $this->call(ActivitySeeder::class);
+
+        // 17. Custom Fields
+        $this->call(CustomFieldSeeder::class);
+
+        // 18. Audit Logs
+        $this->call(AuditLogSeeder::class);
+
+        // 19. Notifications
+        $this->call(NotificationSeeder::class);
+
+        // 20. FollowUps & Attachments
+        for ($i = 0; $i < 12; $i++) {
+            $randomLead = $leads->isNotEmpty() ? $leads->random() : null;
+            if ($randomLead) {
+                FollowUp::create([
+                    'lead_id' => $randomLead->id,
+                    'type' => 'Call',
+                    'status' => 'Pending',
+                    'scheduled_at' => now()->addDays(rand(1, 5)),
+                ]);
+            }
         }
 
-        // 6. Generate exactly 12 pending follow-ups
-        for ($i = 0; $i < 12; $i++) {
-            FollowUp::insert([
-                'lead_id' => rand(1, 142),
-                'type' => 'Call',
-                'status' => 'Pending',
-                'scheduled_at' => now()->addDays(rand(1, 5)),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-        
-        for ($i = 0; $i < 5; $i++) {
-            FollowUp::insert([
-                'lead_id' => rand(1, 142),
-                'type' => 'Email',
-                'status' => 'Completed',
-                'scheduled_at' => now()->subDays(rand(1, 5)),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        for ($i = 0; $i < 10; $i++) {
+            $randomLead = $leads->isNotEmpty() ? $leads->random() : null;
+            if ($randomLead) {
+                Attachment::create([
+                    'user_id' => $user->id,
+                    'attachable_type' => Lead::class,
+                    'attachable_id' => $randomLead->id,
+                    'file_name' => 'document_' . rand(100, 999) . '.pdf',
+                    'file_type' => 'application/pdf',
+                    'file_size' => rand(1024, 5000000),
+                    'file_path' => 'attachments/dummy_' . rand(100, 999) . '.pdf',
+                    'created_at' => now()->subDays(rand(1, 30))
+                ]);
+            }
         }
     }
 }
